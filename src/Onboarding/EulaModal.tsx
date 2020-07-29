@@ -19,7 +19,7 @@ import es_PR from "../locales/eula/es_PR.html"
 import ht from "../locales/eula/ht.html"
 
 import { Icons } from "../assets"
-import { Spacing, Colors } from "../styles"
+import { Spacing, Layout, Colors } from "../styles"
 
 type CloseModalIconProps = {
   closeModal: () => void
@@ -94,7 +94,6 @@ const EulaModal: FunctionComponent = () => {
 
   const handleOnCloseModal = () => {
     navigation.goBack()
-    setIsLoading(true)
   }
 
   return (
@@ -141,10 +140,16 @@ const style = StyleSheet.create({
     backgroundColor: Colors.white,
   },
   closeIcon: {
-    padding: Spacing.xSmall,
-    alignSelf: "flex-end",
+    position: "absolute",
+    zIndex: Layout.level1,
+    borderRadius: 100,
+    backgroundColor: Colors.secondaryBackground,
+    width: 50,
+    height: 50,
     alignItems: "center",
-    alignContent: "center",
+    justifyContent: "center",
+    right: 20,
+    top: 10,
   },
   loadingIndicator: {
     justifyContent: "center",
