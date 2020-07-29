@@ -2,26 +2,24 @@ import React, { useEffect, useState, FunctionComponent } from "react"
 import {
   TouchableOpacity,
   Linking,
-  Modal,
   StyleSheet,
   View,
   SafeAreaView,
   StatusBar,
-  Image,
   ActivityIndicator,
 } from "react-native"
 import { useTranslation } from "react-i18next"
 import loadLocalResource from "react-native-local-resource"
 import WebView, { WebViewNavigation } from "react-native-webview"
 import { SvgXml } from "react-native-svg"
+import { useNavigation } from "@react-navigation/native"
 
-import { Button, RTLEnabledText } from "../components"
 import en from "../locales/eula/en.html"
 import es_PR from "../locales/eula/es_PR.html"
 import ht from "../locales/eula/ht.html"
 
-import { Icons, Images } from "../assets"
-import { Spacing, Buttons, Colors, Typography, Forms } from "../styles"
+import { Icons } from "../assets"
+import { Spacing, Colors } from "../styles"
 
 type CloseModalIconProps = {
   closeModal: () => void
@@ -50,34 +48,6 @@ const CloseModalIcon: FunctionComponent<CloseModalIconProps> = ({
   )
 }
 
-interface CheckboxProps {
-  label: string
-  onPress: () => void
-  checked?: boolean
-}
-
-const Checkbox: FunctionComponent<CheckboxProps> = ({
-  label,
-  onPress,
-  checked,
-}) => {
-  return (
-    <TouchableOpacity
-      style={style.checkbox}
-      onPress={onPress}
-      accessible
-      accessibilityRole="checkbox"
-      accessibilityLabel={label}
-    >
-      <Image
-        source={checked ? Images.BoxCheckedIcon : Images.BoxUncheckedIcon}
-        style={style.checkboxIcon}
-      />
-      <RTLEnabledText style={style.checkboxText}>{label}</RTLEnabledText>
-    </TouchableOpacity>
-  )
-}
-
 const DEFAULT_EULA_URL = "about:blank"
 
 type AvailableLocale = "en" | "es_PR" | "ht"
@@ -88,23 +58,17 @@ const EULA_FILES: Record<AvailableLocale, string> = {
   ["ht"]: ht,
 }
 
-type EulaModalProps = {
-  selectedLocale: string
-  onPressModalContinue: () => void
-}
-
-const EulaModal: FunctionComponent<EulaModalProps> = ({
-  selectedLocale,
-  onPressModalContinue,
-}) => {
-  const [modalVisible, setModalVisibility] = useState(false)
-  const [boxChecked, toggleCheckbox] = useState(false)
+const EulaModal: FunctionComponent = () => {
   const [html, setHtml] = useState<string | undefined>(undefined)
   const [isLoading, setIsLoading] = useState(true)
-  const { t } = useTranslation()
+  const {
+    t,
+    i18n: { language: localeCode },
+  } = useTranslation()
+  const navigation = useNavigation()
 
   // Pull the EULA in the correct language, with en as fallback
-  const eulaPath = EULA_FILES[selectedLocale as AvailableLocale] || en
+  const eulaPath = EULA_FILES[localeCode as AvailableLocale] || en
 
   // Any links inside the EULA should launch a separate browser otherwise you can get stuck inside the app
   const shouldStartLoadWithRequestHandler = (
@@ -126,74 +90,36 @@ const EulaModal: FunctionComponent<EulaModalProps> = ({
       setHtml(await loadLocalResource(eulaPath))
     }
     loadEula()
-  }, [selectedLocale, setHtml, eulaPath])
-
-  const canContinue = boxChecked
-
-  const handleOnPressContinue = () => {
-    setModalVisibility(false)
-    onPressModalContinue()
-  }
+  }, [setHtml, eulaPath])
 
   const handleOnCloseModal = () => {
-    setModalVisibility(false)
+    navigation.goBack()
     setIsLoading(true)
   }
 
-  const handleOnPressGetStarted = () => setModalVisibility(true)
   return (
-    <>
-      <TouchableOpacity style={style.button} onPress={handleOnPressGetStarted}>
-        <RTLEnabledText style={style.buttonText}>
-          {t("label.launch_get_started")}
-        </RTLEnabledText>
-      </TouchableOpacity>
-      <Modal animationType="slide" transparent visible={modalVisible}>
-        <View style={style.container}>
-          <StatusBar barStyle={"dark-content"} />
-          <SafeAreaView style={{ flex: 1 }}>
-            <View style={{ flex: 7, paddingHorizontal: 5 }}>
-              <CloseModalIcon
-                label={t("label.close_icon")}
-                closeModal={handleOnCloseModal}
+    <View style={style.container}>
+      <StatusBar barStyle={"dark-content"} />
+      <SafeAreaView style={{ flex: 1 }}>
+        <View style={{ flex: 7, paddingHorizontal: 5 }}>
+          <CloseModalIcon
+            label={t("label.close_icon")}
+            closeModal={handleOnCloseModal}
+          />
+          {html && (
+            <>
+              <WebView
+                style={{ flex: 1 }}
+                onLoad={() => setIsLoading(false)}
+                source={{ html }}
+                onShouldStartLoadWithRequest={shouldStartLoadWithRequestHandler}
               />
-              {html && (
-                <>
-                  <WebView
-                    style={{ flex: 1 }}
-                    onLoad={() => setIsLoading(false)}
-                    source={{ html }}
-                    onShouldStartLoadWithRequest={
-                      shouldStartLoadWithRequestHandler
-                    }
-                  />
-                  {isLoading ? <LoadingIndicator /> : null}
-                </>
-              )}
-            </View>
-          </SafeAreaView>
-          <SafeAreaView style={{ backgroundColor: Colors.secondaryBlue }}>
-            <View style={style.ctaBox}>
-              <View style={style.checkboxContainer}>
-                <Checkbox
-                  label={t("onboarding.eula_checkbox")}
-                  onPress={() => toggleCheckbox(!boxChecked)}
-                  checked={boxChecked}
-                />
-                <RTLEnabledText style={style.smallDescriptionText}>
-                  {t("onboarding.eula_message")}
-                </RTLEnabledText>
-              </View>
-              <Button
-                label={t("onboarding.eula_continue")}
-                disabled={!canContinue}
-                onPress={handleOnPressContinue}
-              />
-            </View>
-          </SafeAreaView>
+              {isLoading ? <LoadingIndicator /> : null}
+            </>
+          )}
         </View>
-      </Modal>
-    </>
+      </SafeAreaView>
+    </View>
   )
 }
 
@@ -214,37 +140,11 @@ const style = StyleSheet.create({
     color: Colors.primaryText,
     backgroundColor: Colors.white,
   },
-  ctaBox: {
-    padding: Spacing.medium,
-    backgroundColor: Colors.secondaryBlue,
-  },
-  checkboxContainer: {
-    paddingBottom: Spacing.medium,
-  },
   closeIcon: {
     padding: Spacing.xSmall,
     alignSelf: "flex-end",
     alignItems: "center",
     alignContent: "center",
-  },
-  smallDescriptionText: {
-    ...Typography.label,
-    color: Colors.invertedText,
-  },
-  button: {
-    ...Buttons.largeWhite,
-  },
-  buttonText: {
-    ...Typography.buttonTextDark,
-  },
-  checkbox: {
-    ...Forms.checkbox,
-  },
-  checkboxIcon: {
-    ...Forms.checkboxIcon,
-  },
-  checkboxText: {
-    ...Forms.checkboxText,
   },
   loadingIndicator: {
     justifyContent: "center",
@@ -253,3 +153,4 @@ const style = StyleSheet.create({
 })
 
 export default EulaModal
+

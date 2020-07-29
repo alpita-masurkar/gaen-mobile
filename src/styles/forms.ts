@@ -35,9 +35,8 @@ export const checkbox: ViewStyle = {
 }
 
 export const checkboxIcon: ImageStyle = {
-  width: 25,
-  height: 25,
-  marginRight: Spacing.medium,
+  width: 30,
+  height: 30,
 }
 
 export const checkboxText: TextStyle = {
@@ -63,3 +62,4 @@ export const inputIndicator: ViewStyle = {
   marginRight: Spacing.large,
   width: Spacing.large,
 }
+
